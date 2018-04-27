@@ -44,6 +44,8 @@ def function_101(jsonData, R_DCity1):
         Airplane_acity1 = json["acn"]
         Airplane_dt = json["dt"]
         Airplane_at = json["at"]
+        # scs = json['scs'][1]['fdp']
+        # print(scs)
         Airplane_info_list.append(Airplane_price)
         Airplane_info_list.append(Airplane_dcity1)
         Airplane_info_list.append(Airplane_dt)
@@ -93,13 +95,11 @@ def get_url(R_DCity1, R_ACity1, R_DDate1):
     return URL
 
 
-def search_form():
-    R_DCity1 = "WUX"
-    R_ACity1 = "CTU"
-    # R_DDate1 = "2018-05-15"
+def get_jsonData(R_DCity1,R_ACity1,R_DDate1):
+
     # R_DCity1 = input("请输入出发城市：")
     # R_ACity1 = input("请输入到达城市：")
-    R_DDate1 = input("请输入出发时间,例 2018-04-05：")
+    #R_DDate1 = input("请输入出发时间,例 2018-04-05：")
     URL=get_url(R_DCity1, R_ACity1, R_DDate1)
     # URL = 'http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?' + DCity1 + ACity1 + DDate1 + "&IsNearAirportRecommond=0&LogToken=de3918259c91445aa9eb58650ed06c33&rk=9.496725553444126154954&CK=EAD9495B23756516CBFF2A95830F8153&r=0.581329311067284837881120"
     Referer = "http://flights.ctrip.com/booking/" + R_DCity1.lower() + "-" + R_ACity1.lower() + "-day-1.html?ddate1=" + R_DDate1
@@ -115,7 +115,7 @@ def search_form():
     }
 
     res = urllib.request.Request(URL, headers=headers)
-    res = urllib.request.urlopen(res).read().decode("gb2312",errors = 'ignore')
+    res = urllib.request.urlopen(res).read().decode("gb2312", errors='ignore')
     jsonData = json.loads(res)
     Error_Info = jsonData["Error"]
     if Error_Info is None:
@@ -124,12 +124,12 @@ def search_form():
         Error_Code = Error_Info["Code"]
     return jsonData, Error_Code, R_DCity1
 
-if __name__=="__main__":
-    jsonData, Error_Code, R_DCity1 = search_form()
-    #print(Error_Code)
+def get_low_priice(R_DCity1,R_ACity1,R_DDate1):
+    jsonData, Error_Code, DCity = get_jsonData(R_DCity1, R_ACity1, R_DDate1)
+    # print(Error_Code)
     for case in switch(Error_Code):
         if case(101):
-            Airplane_info_dict = function_101(jsonData, R_DCity1)
+            Airplane_info_dict = function_101(jsonData, DCity)
             if Airplane_info_dict == {}:
                 print("返回值为空！可能是查询条件有误，未取得数据。")
             for key in Airplane_info_dict:
@@ -149,4 +149,82 @@ if __name__=="__main__":
         if case():  # default, could also just omit condition or 'if True'
             print('输入有误！')
             break
+    return 0
+
+
+
+def Info_Menu():
+    print('''
+****************************************************************************
+    欢迎使用FlyWhere！
+    Version:1.0  
+    Authon:king
+    使用说明：
+    功能1.选定出发地和目的地。根据出发时间范围，筛选出机票最便宜的五个日期。
+    功能2.选定出发地和出发日期。根据出发地列表，筛选出机票最便宜的五个目的地。
+****************************************************************************
+    请选择(1/2/q)：
+    ''')
+
+def Date_check():
+    return 1
+
+def Function1_Menu():
+    DCity=""
+    ACity=""
+    DDate1=""
+    DDate2=""
+    print("机场列表:")
+    num = 0
+    for key in Airport_dict:
+        print(str(num)+"."+key + ":" + Airport_dict[key][0] + " " + Airport_dict[key][1] + " " + Airport_dict[key][2])
+        num = num + 1
+    while DCity not in Airport_dict.keys():
+        DCity = input("请输入出发地机场简称：")
+        if DCity not in Airport_dict.keys():
+            print("输入出发地机场代码有误！请检查！")
+
+    while ACity not in Airport_dict.keys():
+        ACity = input("请输入目的地机场简称：")
+        if DCity not in Airport_dict.keys():
+            print("输入目的地机场代码有误！请检查！")
+
+
+    DDate1 = input("请输入起始时间,格式 20180405：")
+
+    DDate2 = input("请输入结束时间,格式 20180505：")
+
+
+def Function2_Menu():
+    print("机场列表:")
+    num = 0
+    for key in Airport_dict:
+        print(str(num)+"."+key + ":" + Airport_dict[key][0] + " " + Airport_dict[key][1] + " " + Airport_dict[key][2])
+        num = num + 1
+
+
+if __name__=="__main__":
+    while(1):
+        cmd = 0
+        Info_Menu()
+        cmd = input()
+        if cmd == 'q' or cmd == 'Q' :
+            break
+        while (cmd != '1' and cmd != '2'):
+            print("input("+cmd+"):"+"输入错误，请重新输入，或者Ctrl+z退出")
+            Info_Menu()
+            cmd = input()
+        for case in switch(cmd):
+            if case("1"):
+                Function1_Menu()
+                break
+            if case("2"):
+                Function2_Menu()
+                break
+
+    R_DCity1 = "WUX"
+    R_ACity1 = "SYX"
+    R_DDate1 = "2018-05-15"
+    print("感谢使用，祝旅途愉快，再见！")
+    get_low_priice(R_DCity1,R_ACity1,R_DDate1)
 
