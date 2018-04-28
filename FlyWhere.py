@@ -284,7 +284,7 @@ def Get_Lowest_date():
     DDate1 = DDate1[0:4] + "-" + DDate1[4:6] + "-" + DDate1[6:]
     DDate2 = DDate2[0:4] + "-" + DDate2[4:6] + "-" + DDate2[6:]
     date_range = getEveryDay(DDate1, DDate2)
-    top_lowest_date = [[]]
+    top_lowest_date = []
     for ddate in date_range:
         top_lowest_date.append(get_low_price(DCity, ACity, ddate))
     if top_lowest_date==[]:
