@@ -1,10 +1,7 @@
 #!/usr/bin/python3.4
 # -*- coding:utf-8 -*-
 # to do list:
-#1.ok 加航班时间
-#2.ok必须抓参数不然数据不准，参数决定了不同日期的价格
-#3.可视化界面
-#4.多线程抓取信息（如何防止被禁，如何类似分流抢票分流抓取）
+#1.多线程抓取信息（如何防止被禁，如何类似分流抢票分流抓取）
 import urllib.request
 import json
 import random
@@ -65,8 +62,11 @@ def function_101(jsonData, R_DCity1):
         if Airplane_info_dict[air_num][0] < air_price:
             air_price = Airplane_info_dict[air_num][0]
             low_price_num = air_num
-
-    return {low_price_num: Airplane_info_dict[low_price_num]}
+    result = []
+    result.append(Airplane_info_dict[low_price_num][0])
+    result.append(low_price_num)
+    result.append(Airplane_info_dict[low_price_num][1:])
+    return result
 
 
 def get_url(R_DCity1, R_ACity1, R_DDate1):
@@ -127,46 +127,49 @@ def get_jsonData(R_DCity1,R_ACity1,R_DDate1):
         Error_Code = Error_Info["Code"]
     return jsonData, Error_Code, R_DCity1
 
-def get_low_priice(R_DCity1,R_ACity1,R_DDate1):
+def get_low_price(R_DCity1,R_ACity1,R_DDate1):
     jsonData, Error_Code, DCity = get_jsonData(R_DCity1, R_ACity1, R_DDate1)
     # print(Error_Code)
     for case in switch(Error_Code):
         if case(101):
             Airplane_info_dict = function_101(jsonData, DCity)
-            if Airplane_info_dict == {}:
+            if Airplane_info_dict == []:
                 print("返回值为空！可能是查询条件有误，未取得数据。")
-            for key in Airplane_info_dict:
-                print(key, Airplane_info_dict[key])
-            break
+                return []
+            return Airplane_info_dict
         if case(102):
             # 102暂时没发现，可能是携程已改版
             print(Error_Code_Dict["102"])
-            break
+            return []
         if case(103):
             # 此处不能直接提示不通航，应该检查是否有中转航班
             print(Error_Code_Dict["103"])
-            break
+            return []
         if case(104):
             print(Error_Code_Dict["104"])
-            break
+            return []
         if case():  # default, could also just omit condition or 'if True'
             print('输入有误！')
-            break
-    return 0
+            return []
+    return []
 
 
 
 def Info_Menu():
     print('''
 ****************************************************************************
-    欢迎使用FlyWhere！
+    欢迎使用FlyWhere！突然想去浪，钱包又太瘪？FlyWhere告诉你哪便宜飞哪！
     Version:1.0  
     Authon:king
     使用说明：
-    功能1.选定出发地和目的地。根据出发时间范围，筛选出机票最便宜的五个日期。
-    功能2.选定出发地和出发日期。根据出发地列表，筛选出机票最便宜的五个目的地。
+    ① 爬取数据来源于携程,暂时只支持查询直飞,请根据结果去携程订票
+    ② 基于python3开发,请确定运行环境为python3.X版本
+    ③ 因字符编码问题,此工具暂时只可在linux下运行
 ****************************************************************************
     请选择(1/2/q)：
+    1.选定出发地和目的地。根据出发时间范围，筛选出机票最便宜的五个日期。
+    2.选定出发地和出发日期。根据目的地列表，筛选出机票最便宜的五个目的地。
+    q/Q)退出。
     ''')
 
 def Date1_check(DDate1):
@@ -232,10 +235,18 @@ def Date2_check(DDate1,DDate2):
         # return [False, "查询时间请不要超过一年！"]
     return True
 
+def getEveryDay(begin_date,end_date):
+    date_list = []
+    begin_date = datetime.datetime.strptime(begin_date, "%Y-%m-%d")
+    end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+    while begin_date <= end_date:
+        date_str = begin_date.strftime("%Y-%m-%d")
+        date_list.append(date_str)
+        begin_date += datetime.timedelta(days=1)
+    return date_list
 
 
-
-def Function1_Menu():
+def Get_Lowest_date():
     DCity=""
     ACity=""
     DDate1=""
@@ -264,14 +275,33 @@ def Function1_Menu():
             DDate1=time.strftime("%Y%m%d")
             break
 
-    while not Date2_check(DDate1,DDate2):
-        DDate2 = input("请输入结束时间,格式 yyyymmdd(直接回车表示只查询起始时间当天)：")
+    while not Date2_check(DDate1, DDate2):
+        DDate2 = input("请输入结束时间,格式 yyyymmdd(直接回车表示跟起始时间相同)：")
         if DDate2.strip()=="":
             DDate2=DDate1
             break
-    # print(DCity,ACity,DDate1,DDate2)
 
-def Function2_Menu():
+    DDate1 = DDate1[0:4] + "-" + DDate1[4:6] + "-" + DDate1[6:]
+    DDate2 = DDate2[0:4] + "-" + DDate2[4:6] + "-" + DDate2[6:]
+    date_range = getEveryDay(DDate1, DDate2)
+    top_lowest_date = [[]]
+    for ddate in date_range:
+        top_lowest_date.append(get_low_price(DCity, ACity, ddate))
+    if top_lowest_date==[]:
+        return -1
+    elif top_lowest_date[0]==[]:
+        return -1
+    top_lowest_date = sorted(top_lowest_date, key=lambda x: int(x[0]))
+    count = 0
+    for lowest_date in top_lowest_date:
+        if count < 5:
+            print(lowest_date)
+            count = count + 1
+        else:
+            break
+    return 0
+
+def Get_Lowest_city():
     print("机场列表:")
     num = 0
     for key in Airport_dict:
@@ -280,27 +310,34 @@ def Function2_Menu():
 
 
 if __name__=="__main__":
+    q_flag = 0
     while(1):
         cmd = 0
+        if cmd == 'q' or cmd == 'Q' or q_flag==1:
+            break
         Info_Menu()
         cmd = input()
-        if cmd == 'q' or cmd == 'Q' :
+        if cmd == 'q' or cmd == 'Q' or q_flag==1:
             break
         while (cmd != '1' and cmd != '2'):
             print("input("+cmd+"):"+"输入错误，请重新输入，或者Ctrl+z退出")
             Info_Menu()
             cmd = input()
+            if cmd == 'q' or cmd == 'Q':
+                q_flag = 1
+                break
         for case in switch(cmd):
             if case("1"):
-                Function1_Menu()
-                break
+                Get_Lowest_date()
+                cmd = input("按任意键回车返回主菜单,q/Q退出")
+                if cmd == 'q' or cmd == 'Q':
+                    q_flag = 1
+                    break
+                else:
+                    break
             if case("2"):
-                Function2_Menu()
+                Get_Lowest_city()
                 break
-
-    R_DCity1 = "WUX"
-    R_ACity1 = "SYX"
-    R_DDate1 = "2018-05-15"
-    print("感谢使用，祝旅途愉快，再见！")
-    get_low_priice(R_DCity1,R_ACity1,R_DDate1)
+            if case():
+                break
 
